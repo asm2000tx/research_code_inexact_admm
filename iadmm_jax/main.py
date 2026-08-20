@@ -1,4 +1,5 @@
 import numpy as np
+from fista import prox_step
 
 ## Inexact ADMM with relative error criterion written by Jiaxin, Anping, and Xiaobo
 
@@ -17,6 +18,8 @@ def main():
     eps = np.random.randn(m)
     b = A @ x + delta * eps
 
+    message = prox_step()
+    print(f"Passed message: {message}")
     
     
 if __name__ == '__main__':
