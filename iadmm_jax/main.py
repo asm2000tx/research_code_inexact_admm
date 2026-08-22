@@ -22,12 +22,18 @@ def main():
     # Define x_p, y_p, and l_d 
     x_p, y_p, l_d = np.zeros(n), np.zeros(m), np.zeros(m)
 
-    fista_step = fista_const(A, b, beta)
+    # Define w_1, w_2
+    w_1, w_2 = np.random.randn(n), np.random.randn(m)
 
-    count = 10
-    while True:
-        count += 1
-        if count >= 10: break
+    # Define random constants sigma_1 and sigma_2 whose sum is < 1
+    sigma_1 = 0.9 
+    sigma_2 = 0.01
+    if sigma_1 + sigma_2 >= 1: sigma_2 = 1 - sigma_1 - 1e-3
+
+    # Solve x-subproblem
+    fista_step = fista_const(A, y_p, l_d, b, w_1, beta, sigma_1)
+    d_step, x_step = fista_step.prox_step()
     
 if __name__ == '__main__':
 	main()
+
