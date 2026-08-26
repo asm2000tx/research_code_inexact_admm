@@ -12,8 +12,6 @@ class fista_const:
 
         # Lipschitz constant
         self.L = self.beta * np.linalg.norm(self.A, 2) ** 2
-        if self.L <= 0:
-            raise ValueError("A must have a non-zero spectral norm")
 
     # Gradient of smooth term of objective function
     def grad_func(self, v_step, c_k): return self.beta * self.A.T @ (self.A @ v_step - c_k)
