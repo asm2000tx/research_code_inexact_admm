@@ -1,5 +1,4 @@
 import numpy as np
-import time
 
 class fista_const:
     def __init__(self, A, y_p, l_d, b, w_1, beta, sigma_1):
@@ -11,7 +10,10 @@ class fista_const:
         self.beta = beta
         self.sigma_1 = sigma_1
 
-        self.L = self.beta * np.max(np.linalg.eigvals(A.T @ A))     ## Lipschitz constant to gradient of smooth term
+        # Lipschitz constant
+        self.L = self.beta * np.linalg.norm(self.A, 2) ** 2
+        if self.L <= 0:
+            raise ValueError("A must have a non-zero spectral norm")
 
     # Gradient of smooth term of objective function
     def grad_func(self, v_step, c_k): return self.beta * self.A.T @ (self.A @ v_step - c_k)
@@ -34,14 +36,17 @@ class fista_const:
         return (lhs_term1 + lhs_term2) <= rhs_term
     
     def prox_step(self):
-        m, n = self.A.shape
+        _, n = self.A.shape
         c_k = self.b + (1 / self.beta) * self.l_d - self.y_p
 
-        # Defining starting steps - FISTA Algorithm
-        x_curr, y_curr, t_curr = np.random.randn(n), np.random.randn(n), 1
+        # Start FISTA from a feasible, deterministic point.  In particular,
+        # x_curr and y_curr must represent the same iterate initially.
+        x_curr = np.zeros(n)
+        y_curr = x_curr.copy()
+        t_curr = 1.0
 
         count = 1
-        while True: 
+        while True:
             # Gradient of smooth term at y_k with respect to x
             grad_y = self.grad_func(y_curr, c_k)
 
@@ -59,10 +64,8 @@ class fista_const:
                 print(f"Threshold is met! Returning results after {count} steps ...\n")
                 return d_step, x_next
 
-            elif count == 10000: return d_step, x_next
-
-            t_next = 0.5 * 1.0 + np.sqrt(1.0 + 4.0 * t_curr ** 2)
-            y_next = x_curr + ((t_curr - 1.0) / t_next) * (x_next - x_curr)
+            t_next = 0.5 * (1.0 + np.sqrt(1.0 + 4.0 * t_curr ** 2))
+            y_next = x_next + ((t_curr - 1.0) / t_next) * (x_next - x_curr)
 
             x_curr = x_next
             y_curr = y_next
