@@ -1,4 +1,5 @@
 import numpy as np
+from condition import dist_cond, approx_cond
 
 class fista_const:
     def __init__(self, A, y_p, l_d, b, w_1, beta, sigma_1, xi_2):
@@ -23,27 +24,7 @@ class fista_const:
     # Subgradient of L1-norm 
     def soft_shrinkage(self, grad_g): return np.sign(grad_g) * np.maximum(np.abs(grad_g) - (1/self.L), 0)
 
-    def dist_cond(self, curr_pt, count): 
-        grad_g = curr_pt - (1/self.L) * self.grad_func(curr_pt)
-        curr_pt = self.soft_shrinkage(grad_g)
-        dist = np.linalg.norm(curr_pt, ord=np.inf)
-        if count % 250 == 0: print(f"||x_new||_inf | {dist}\n")
-        return (dist < self.xi_2)
-
-    def approx_cond(self, d_step, x_next, count):
-        residual = self.A @ x_next + self.y_p - self.b
-
-        lhs_term1 = (2.0 / self.beta) * np.abs((self.w_1 - x_next).T @ d_step)
-        lhs_term2 = d_step.T @ d_step
-        rhs_term = self.sigma_1 * (residual.T @ residual)
-        if count % 250 == 0:
-            print(f"Iteration #{count}:")
-            print(f" LHS sum      | {lhs_term1 + lhs_term2}")
-            print(f" RHS dist     | {rhs_term}")
-
-        return (lhs_term1 + lhs_term2) <= rhs_term
-    
-    def prox_step(self):
+    def fista(self):
         _, n = self.A.shape
 
         # primal variables and step size from the FISTA algorithm
@@ -60,9 +41,12 @@ class fista_const:
             # Computing d_{1}^{k+1} from the FISTA subproblem
             grad_x = self.grad_func(x_next)
             d_step = grad_x - self.L * (x_next - y_curr) - grad_y
-
+            
             # Checking approximation threshold
-            if self.approx_cond(d_step, x_next, count) or self.dist_cond(x_next, count): 
+            subdiff = self.soft_shrinkage(grad_x)
+            cond_1 = approx_cond(self.A, self.b, x_next, d_step, self.y_p, self.w_1, self.beta, self.sigma_1, count) 
+            cond_2 = dist_cond(subdiff, count, self.xi_2) 
+            if cond_1 or cond_2: 
                 print(f"Threshold is met! | Steps: {count}\n")
                 return d_step, x_next
 

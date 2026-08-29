@@ -1,17 +1,14 @@
 import numpy as np
+
+# Classes
 from fista import fista_const
 
-## Inexact ADMM with relative error criterion written by Jiaxin, Anping, and Xiaobo
+# Helper functions
+from condition import threshold
 
-def threshold(A, x_p, y_p, y_prev, b, beta, count, xi_1):
-    stop_term1 = (np.linalg.norm(A @ x_p + y_p - b)) / (1.0 + np.linalg.norm(b))
-    stop_term2 = (np.linalg.norm(beta * A.T @ (y_p - y_prev))) / (1.0 + np.linalg.norm(y_prev))
-
-    stop_measure = max(stop_term1, stop_term2)
-    if (count % 100) == 0: print(f"Status on max-norm: {stop_measure}")
-    if stop_measure < xi_1: print(f"Condition met with stop_measure = {stop_measure}")
-
-    return (stop_measure < xi_1)
+## Comments:
+## This code is based on the inexact ADMM with relative error 
+## criterion algorithm written by Jiaxin, Anping, and Xiaobo.
 
 def main():
     m, n = 1024, 4096
@@ -29,6 +26,7 @@ def main():
     eps = np.random.randn(m)
     b = A @ x_bar + delta * eps
 
+    # mu variable 
     mu = np.sqrt(m) * np.linalg.norm(A.T @ b, ord=np.inf)
 
     # Define x_p, y_p, and l_d 
@@ -38,7 +36,7 @@ def main():
     w_1, w_2 = np.zeros(n), np.zeros(m)
 
     # Define random constants sigma_1 and sigma_2 whose sum is < 1
-    sigma_1 = 0.99
+    sigma_1 = 0.5
 
     # Defining xi_1 and xi_2
     xi_1 = 1e-4
@@ -48,7 +46,7 @@ def main():
     while True:
         # Solving x-subproblem to compute x^{k+1}
         fista_step = fista_const(A, y_p, l_d, b, w_1, beta, sigma_1, xi_2)
-        d_1, x_p = fista_step.prox_step()
+        d_1, x_p = fista_step.fista()
 
         # Saving the previous y_p to use for termination of algorithm 1.
         y_prev = y_p
