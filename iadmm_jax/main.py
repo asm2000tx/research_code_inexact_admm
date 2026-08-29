@@ -7,8 +7,8 @@ from fista import fista_const
 from condition import threshold
 
 ## Comments:
-## This code is based on the inexact ADMM with relative error 
-## criterion algorithm written by Jiaxin, Anping, and Xiaobo.
+## This code implements the inexact ADMM with relative error 
+## criterion algorithm. The main loop is performing the minimization problem. 
 
 def main():
     m, n = 1024, 4096
@@ -43,9 +43,19 @@ def main():
     xi_2 = 1e-8
 
     count = 0
+    fista_args = {
+        'A': A,
+        'y': y_p,
+        'l': l_d,
+        'b': b,
+        'w_1': w_1,
+        'beta': beta,
+        'sigma_1': sigma_1,
+        'xi_2': xi_2
+    }
     while True:
         # Solving x-subproblem to compute x^{k+1}
-        fista_step = fista_const(A, y_p, l_d, b, w_1, beta, sigma_1, xi_2)
+        fista_step = fista_const(**fista_args)
         d_1, x_p = fista_step.fista()
 
         # Saving the previous y_p to use for termination of algorithm 1.
@@ -53,14 +63,31 @@ def main():
 
         # Using closed-form solution to compute y^{k+1} 
         z = b + (1.0 / beta) * l_d - (A @ x_p)
-        y_p = np.sign(z) * np.maximum(np.abs(z) - beta / mu, 0.0)
+        y_curr = np.sign(z) * np.maximum(np.abs(z) - beta / mu, 0.0)
 
-        if threshold(A, x_p, y_p, y_prev, b, beta, count, xi_1): break
+        # Using a dictionary to contain the threshold arguments. 
+        cond_args = {
+            'A': A,
+            'x_p': x_p,
+            'y_p': y_prev,
+            'y_c': y_curr,
+            'b': b,
+            'beta': beta,
+            'count': count,
+            'xi_1': xi_1
+        }
+        if threshold(**cond_args): break
 
         # Condition failed, incrementing count and updating l_d and w_1 variables. 
         count += 1
+        y_p = y_curr
         l_d = l_d - beta * (A @ x_p + y_p - b)
         w_1 = w_1 - beta * d_1
+
+        # Resetting arguments for FISTA algorithm
+        fista_args["y"] = y_p
+        fista_args["l"] = l_d
+        fista_args["w_1"] = w_1
 
 if __name__ == '__main__':
 	main()

@@ -2,15 +2,15 @@ import numpy as np
 from condition import dist_cond, approx_cond
 
 class fista_const:
-    def __init__(self, A, y_p, l_d, b, w_1, beta, sigma_1, xi_2):
-        self.A = A
-        self.y_p = y_p
-        self.l_d = l_d
-        self.b = b
-        self.w_1 = w_1
-        self.beta = beta
-        self.sigma_1 = sigma_1
-        self.xi_2 = xi_2
+    def __init__(self, params):
+        self.A = params["A"]
+        self.y_p = params["y"]
+        self.l_d = params["l"]
+        self.b = params["b"]
+        self.w_1 = params["w_1"]
+        self.beta = params["beta"]
+        self.sigma_1 = params["sigma_1"]
+        self.xi_2 = params["xi_2"]
 
         # Second term inside the smooth function
         self.c_k = self.b + (1 / self.beta) * self.l_d - self.y_p
@@ -43,8 +43,19 @@ class fista_const:
             d_step = grad_x - self.L * (x_next - y_curr) - grad_y
             
             # Checking approximation threshold
+            c1_dict = {
+                "A" : self.A, 
+                "b" : self.b, 
+                "x" : x_next, 
+                "d" : d_step, 
+                "y" : self.y_p, 
+                "w_1": self.w_1, 
+                "beta" : self.beta, 
+                "sigma_1" : self.sigma_1, 
+                "count" : count
+            }
             subdiff = self.soft_shrinkage(grad_x)
-            cond_1 = approx_cond(self.A, self.b, x_next, d_step, self.y_p, self.w_1, self.beta, self.sigma_1, count) 
+            cond_1 = approx_cond(**c1_dict) 
             cond_2 = dist_cond(subdiff, count, self.xi_2) 
             if cond_1 or cond_2: 
                 print(f"Threshold is met! | Steps: {count}\n")
