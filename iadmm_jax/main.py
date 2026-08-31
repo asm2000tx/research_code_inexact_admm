@@ -9,6 +9,7 @@ from condition import threshold
 ## Comments:
 ## This code implements the inexact ADMM with relative error 
 ## criterion algorithm. The main loop is performing the minimization problem. 
+## Author(s): Jiaxin Xie, Anping Liao, Xiaobo Yang
 
 def main():
     m, n = 1024, 4096
