@@ -11,10 +11,10 @@ def threshold(t1_dict):
     return (stop_measure < t1_dict["xi_1"])
 
 def approx_cond(c1_dict):
-    residual = c1_dict["A"] @ c1_dict["x"] + c1_dict["y"] - c1_dict["b"]  # A @ x_next + y_p - b
-    lhs_term1 = (2.0 / c1_dict["beta"]) * np.abs((c1_dict["w_1"] - c1_dict["x"]).T @ c1_dict["d"])  # (2.0 / beta) * np.abs((w_1 - x_next).T @ d_step)
-    lhs_term2 = c1_dict["d"].T @ c1_dict["d"]  # d_step.T @ d_step
-    rhs_term = c1_dict["sigma_1"] * (residual.T @ residual)  # sigma_1 * (residual.T @ residual)
+    residual = c1_dict["A"] @ c1_dict["x"] + c1_dict["y"] - c1_dict["b"]  
+    lhs_term1 = (2.0 / c1_dict["beta"]) * np.abs((c1_dict["w_1"] - c1_dict["x"]).T @ c1_dict["d"])  
+    lhs_term2 = c1_dict["d"].T @ c1_dict["d"]  
+    rhs_term = c1_dict["sigma_1"] * (residual.T @ residual) 
     if c1_dict["count"] % 250 == 0:
         print(f"Iteration #{c1_dict['count']}:")
         print(f" LHS sum      | {lhs_term1 + lhs_term2}")
