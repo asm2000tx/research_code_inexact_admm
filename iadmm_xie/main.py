@@ -15,15 +15,22 @@ def main():
     # Defining the unknown variables
     x_p, y_p, l_d = np.zeros(n), np.random.randn(s), np.random.randn(s)
 
-    # Defining the constants, mu and beta    
-    mu, beta = 0.01, 25
+    # Defining the constants, mu, beta, and sigma
+    mu, beta, sigma = 0.01, 25, 0.5
 
-    # Defining the preliminary data to execute the CG algorithm
-    C_cg = A.T @ A + mu * beta * D.T @ D
-    b_cg = mu * D.T @ (l_d * y_p) + A.T @ c
+    cg_dict = {
+        "A" : A,
+        "D" : D,
+        "y" : y_p,
+        "l" : l_d,
+        "c" : c,
+        "mu" : mu,
+        "beta" : beta, 
+        "sigma" : sigma
+    }
 
     # Executing the CG method
-    conjugate_class = cg_class(C_cg, b_cg)
+    conjugate_class = cg_class(**cg_dict)
     x_p = conjugate_class.cg_method(x_p)
 
 if __name__ == '__main__':
