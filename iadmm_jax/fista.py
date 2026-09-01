@@ -2,15 +2,15 @@ import numpy as np
 from condition import dist_cond, approx_cond
 
 class fista_const:
-    def __init__(self, params):
-        self.A = params["A"]
-        self.y_p = params["y"]
-        self.l_d = params["l"]
-        self.b = params["b"]
-        self.w_1 = params["w_1"]
-        self.beta = params["beta"]
-        self.sigma_1 = params["sigma_1"]
-        self.xi_2 = params["xi_2"]
+    def __init__(self, **kwargs):
+        self.A = kwargs["A"]
+        self.y_p = kwargs["y"]
+        self.l_d = kwargs["l"]
+        self.b = kwargs["b"]
+        self.w_1 = kwargs["w_1"]
+        self.beta = kwargs["beta"]
+        self.sigma_1 = kwargs["sigma_1"]
+        self.xi_2 = kwargs["xi_2"]
 
         # Second term inside the smooth function
         self.c_k = self.b + (1 / self.beta) * self.l_d - self.y_p
@@ -22,7 +22,7 @@ class fista_const:
     def grad_func(self, curr_pt): return self.beta * self.A.T @ (self.A @ curr_pt - self.c_k)
 
     # Subgradient of L1-norm 
-    def soft_shrinkage(self, grad_g): return np.sign(grad_g) * np.maximum(np.abs(grad_g) - (1/self.L), 0)
+    def soft_shrinkage(self, grad_g): return np.sign(grad_g) * np.maximum(np.abs(grad_g) - (self.w_1/self.L), 0)
 
     def fista(self):
         _, n = self.A.shape
@@ -55,7 +55,7 @@ class fista_const:
                 "count" : count
             }
             subdiff = self.soft_shrinkage(grad_x)
-            cond_1 = approx_cond(**c1_dict) 
+            cond_1 = approx_cond(c1_dict) 
             cond_2 = dist_cond(subdiff, count, self.xi_2) 
             if cond_1 or cond_2: 
                 print(f"Threshold is met! | Steps: {count}\n")

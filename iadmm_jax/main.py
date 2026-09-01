@@ -12,12 +12,12 @@ from condition import threshold
 ## Author(s): Jiaxin Xie, Anping Liao, Xiaobo Yang
 
 def main():
-    m, n = 1024, 4096
+    m, n = 256, 1024
     A = np.random.randn(m, n)
     beta = 1.5e3
     
     ## Define s-sparse vector x
-    s = 15
+    s = 20
     x_bar = np.zeros(n)
     x_bar[:s] = np.random.randn(s)
     np.random.shuffle(x_bar)
@@ -45,15 +45,16 @@ def main():
 
     count = 0
     fista_args = {
-        'A': A,
-        'y': y_p,
-        'l': l_d,
-        'b': b,
-        'w_1': w_1,
-        'beta': beta,
-        'sigma_1': sigma_1,
-        'xi_2': xi_2
+        "A": A,
+        "y": y_p,
+        "l": l_d,
+        "b": b,
+        "w_1": w_1,
+        "beta": beta,
+        "sigma_1": sigma_1,
+        "xi_2": xi_2
     }
+
     while True:
         # Solving x-subproblem to compute x^{k+1}
         fista_step = fista_const(**fista_args)
@@ -68,16 +69,16 @@ def main():
 
         # Using a dictionary to contain the threshold arguments. 
         cond_args = {
-            'A': A,
-            'x_p': x_p,
-            'y_p': y_prev,
-            'y_c': y_curr,
-            'b': b,
-            'beta': beta,
-            'count': count,
-            'xi_1': xi_1
+            "A": A,
+            "x_c": x_p,
+            "y_p": y_prev,
+            "y_c": y_curr,
+            "b": b,
+            "beta": beta,
+            "count": count,
+            "xi_1": xi_1
         }
-        if threshold(**cond_args): break
+        if threshold(cond_args): break
 
         # Condition failed, incrementing count and updating l_d and w_1 variables. 
         count += 1
