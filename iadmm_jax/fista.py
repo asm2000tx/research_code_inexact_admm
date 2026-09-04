@@ -22,7 +22,7 @@ class fista_const:
     def grad_func(self, curr_pt): return self.beta * self.A.T @ (self.A @ curr_pt - self.c_k)
 
     # Subgradient of L1-norm 
-    def soft_shrinkage(self, grad_g): return np.sign(grad_g) * np.maximum(np.abs(grad_g) - (self.w_1/self.L), 0)
+    def soft_shrinkage(self, grad_g): return np.sign(grad_g) * np.maximum(np.abs(grad_g) - (1/self.L), 0)
 
     def fista(self):
         _, n = self.A.shape

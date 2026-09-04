@@ -5,8 +5,9 @@ def threshold(t1_dict):
     stop_term2 = (np.linalg.norm(t1_dict["beta"] * t1_dict["A"].T @ (t1_dict["y_c"] - t1_dict["y_p"]))) / (1.0 + np.linalg.norm(t1_dict["y_p"]))
 
     stop_measure = max(stop_term1, stop_term2)
-    if (t1_dict["count"] % 100) == 0: print(f"Status on max-norm: {stop_measure}")
+    print(f"Status on max-norm: {stop_measure}")
     if stop_measure < t1_dict["xi_1"]: print(f"Condition met with stop_measure = {stop_measure}")
+    else: print("Threshold not met! Repeating loop ...\n")
 
     return (stop_measure < t1_dict["xi_1"])
 

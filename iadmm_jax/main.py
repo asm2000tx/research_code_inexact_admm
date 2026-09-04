@@ -12,12 +12,13 @@ from condition import threshold
 ## Author(s): Jiaxin Xie, Anping Liao, Xiaobo Yang
 
 def main():
-    m, n = 256, 1024
+    m, n = 1024, 4096
     A = np.random.randn(m, n)
+    A /= np.linalg.norm(A, axis=0, keepdims=True)   # Generating a normalized Gaussian matrix.  
     beta = 1.5e3
     
     ## Define s-sparse vector x
-    s = 20
+    s = 60
     x_bar = np.zeros(n)
     x_bar[:s] = np.random.randn(s)
     np.random.shuffle(x_bar)
@@ -43,7 +44,7 @@ def main():
     xi_1 = 1e-4
     xi_2 = 1e-8
 
-    count = 0
+    count = 1
     fista_args = {
         "A": A,
         "y": y_p,
@@ -65,7 +66,7 @@ def main():
 
         # Using closed-form solution to compute y^{k+1} 
         z = b + (1.0 / beta) * l_d - (A @ x_p)
-        y_curr = np.sign(z) * np.maximum(np.abs(z) - beta / mu, 0.0)
+        y_curr = np.sign(z) * np.maximum(np.abs(z) - mu / beta, 0.0)
 
         # Using a dictionary to contain the threshold arguments. 
         cond_args = {
@@ -75,21 +76,23 @@ def main():
             "y_c": y_curr,
             "b": b,
             "beta": beta,
-            "count": count,
             "xi_1": xi_1
         }
         if threshold(cond_args): break
+        print(f"Current count: {count}\n")
 
-        # Condition failed, incrementing count and updating l_d and w_1 variables. 
-        count += 1
+        # Condition failed, updating l_d and w_1 variables. 
         y_p = y_curr
         l_d = l_d - beta * (A @ x_p + y_p - b)
         w_1 = w_1 - beta * d_1
 
         # Resetting arguments for FISTA algorithm
+        count += 1
         fista_args["y"] = y_p
         fista_args["l"] = l_d
         fista_args["w_1"] = w_1
+
+    print(f"Final count: {count}")
 
 if __name__ == '__main__':
 	main()
