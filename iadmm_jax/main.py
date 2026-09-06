@@ -92,7 +92,7 @@ def main():
     ## Method 1 - Gaussian matrix
     A = np.random.randn(m, n)
     A /= np.linalg.norm(A, axis=0, keepdims=True)
-
+    
     ## x_bar - sparse vector
     x_bar = np.zeros(n)
     s_bar = np.random.randint(1,s)
