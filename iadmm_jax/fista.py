@@ -24,7 +24,7 @@ class fista_const:
     # Subgradient of L1-norm 
     def soft_shrinkage(self, grad_g): return np.sign(grad_g) * np.maximum(np.abs(grad_g) - (1/self.L), 0)
 
-    def fista(self):
+    def fista_inexact(self):
         _, n = self.A.shape
 
         # primal variables and step size from the FISTA algorithm
@@ -69,3 +69,6 @@ class fista_const:
             y_curr = y_next
             t_curr = t_next
             count += 1
+
+    def fista_exact(self):
+        pass
