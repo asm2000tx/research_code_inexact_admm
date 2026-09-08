@@ -5,14 +5,15 @@ import time
 from fista import fista_const
 
 # Helper functions
-from condition import threshold
+from conditions import check_fista_threshold
 
 ## Comments:
 ## This code implements the inexact ADMM with relative error 
 ## criterion algorithm. The main loop is performing the minimization problem. 
 ## Author(s): Jiaxin Xie, Anping Liao, Xiaobo Yang
 
-def iadmm_algorithm(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
+def admm_alg(A, b, beta, xi_1, xi_2, m, n, *, inexact=False, sigma_1=None, max_iter=None):
+    if inexact and sigma_1 is None: raise ValueError("sigma_1 is required for an inexact ADMM update")
 
     ## mu - constant
     mu = np.sqrt(m) * np.linalg.norm(A.T @ b, ord=np.inf)
@@ -20,8 +21,8 @@ def iadmm_algorithm(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
     ## Define x_p and y_p (primal) | l_d (dual)
     x_p, y_p, l_d = np.zeros(n), np.zeros(m), np.zeros(m)
 
-    ## Define w_1 - closed-form solution for y doesn't need w_2
-    w_1 = np.zeros(n)
+    ## The inexact method carries the FISTA correction term w_1.
+    w_1 = np.zeros(n) if inexact else None
 
     count = 1
     fista_args = {
@@ -31,15 +32,21 @@ def iadmm_algorithm(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
         "b": b,
         "w_1": w_1,
         "beta": beta,
-        "sigma_1": sigma_1,
+        "sigma_1": sigma_1 if inexact else None,
         "xi_2": xi_2
     }
 
-    ## Inexact ADMM algorithm
+    ## ADMM iterations
     while True:
+        print(f"Iteration #{count}:")
+
+        ## Keeping the initial result of x_p
+        x_prev =  x_p
+
         ## Solving x-subproblem to compute x^{k+1}
         fista_step = fista_const(**fista_args)
-        d_1, x_p = fista_step.fista_inexact()
+        if inexact: d_1, x_p = fista_step.fista(inexact=True)
+        else: x_p = fista_step.fista(inexact=False)
 
         ## Saving the previous y_p to use for termination of algorithm 1.
         y_prev = y_p
@@ -51,20 +58,21 @@ def iadmm_algorithm(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
         ## Using a dictionary to contain the threshold arguments. 
         cond_args = {
             "A": A,
-            "x_c": x_p,
+            "x_p": x_prev,
             "y_p": y_prev,
             "y_c": y_curr,
             "b": b,
             "beta": beta,
             "xi_1": xi_1
         }
-        if threshold(cond_args): break
+        if check_fista_threshold(cond_args): break
+        if max_iter is not None and count >= max_iter: break
         # print(f"Current count: {count}\n")
 
         ## Condition failed, updating l_d and w_1 variables. 
         y_p = y_curr
         l_d = l_d - beta * (A @ x_p + y_p - b)
-        w_1 = w_1 - beta * d_1
+        if inexact: w_1 = w_1 - beta * d_1
 
         ## Resetting arguments for FISTA algorithm
         count += 1
@@ -72,14 +80,19 @@ def iadmm_algorithm(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
         fista_args["l"] = l_d
         fista_args["w_1"] = w_1
 
+    print(f"Final Count: {count}\n")
+
     return x_p, count
 
-def admm_algorithm(A, beta, delta, xi_1, xi_2, s, m, n):
-    pass
+def inexact_admm_alg(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
+    return admm_alg(A, b, beta, xi_1, xi_2, m, n, inexact=True, sigma_1=sigma_1)
+
+def classic_admm_alg(A, b, beta, delta, xi_1, xi_2, s, m, n):
+    return admm_alg(A, b, beta, xi_1, xi_2, m, n, inexact=False)
 
 def main():
     ## Dimensions and sparsity constant
-    s, m, n = 60, 1024, 4096
+    s, m, n = 10, 256, 1024
 
     ## Define the inexact solution
     beta = 1.5e3
@@ -107,17 +120,50 @@ def main():
 
     print(f"Problem: m, n, s = {m}, {n}, {s}\n")
 
-    x_sol, iter = iadmm_algorithm(A, b, 0.1, beta, xi_1, xi_2, s, m, n) 
-    print(f"Final count: {iter}")
-    print(f"Relative Error: {np.linalg.norm(x_bar - x_sol) / np.linalg.norm(x_bar)}")
+    # Keep all methods in one table so every configuration is tested identically.
+    methods = [
+        ("Inexact ADMM (sigma_1=0.1)",
+         lambda: inexact_admm_alg(A, b, 0.1, beta, xi_1, xi_2, s, m, n)),
+        ("Inexact ADMM (sigma_1=0.5)",
+         lambda: inexact_admm_alg(A, b, 0.5, beta, xi_1, xi_2, s, m, n)),
+        ("Inexact ADMM (sigma_1=0.99)",
+         lambda: inexact_admm_alg(A, b, 0.99, beta, xi_1, xi_2, s, m, n)),
+        ("Classic ADMM",
+         lambda: classic_admm_alg(A, b, beta, delta, xi_1, xi_2, s, m, n)),
+    ]
+    results = {name: {"count": [], "error": [], "time": []} for name, _ in methods}
 
-    # print("Inexact ADMM with sigma_1 == 0.1")
-    # iadmm_algorithm(A, 0.1, beta, delta, xi_1, xi_2, s, m, n) 
-    # print("Inexact ADMM with sigma_1 == 0.5")
-    # iadmm_algorithm(A, 0.5, beta, delta, xi_1, xi_2, s, m, n) 
-    # print("Inexact ADMM with sigma_1 == 0.99")
-    # iadmm_algorithm(A, 0.99, beta, delta, xi_1, xi_2, s, m, n)
-    # admm_algorithm(A, beta, delta, xi_1, xi_2, s, m, n) 
+    for trial in range(1, 11):
+        for name, solve in methods:
+            print(f"Trial {trial}/10: Running {name}\n")
+            start = time.perf_counter()
+            x_sol, count = solve()
+            elapsed = time.perf_counter() - start
+            rel_error = np.linalg.norm(x_bar - x_sol) / np.linalg.norm(x_bar)
+
+            results[name]["count"].append(count)
+            results[name]["error"].append(rel_error)
+            results[name]["time"].append(elapsed)
+            print(f"{name}: m={m}, n={n}, s={s}, iterations={count}, "
+                f"error={rel_error:.6e}, "
+                  f"time={elapsed:.6f}s\n")
+
+    print("\n" + "=" * 110)
+    print("Summary of results (10 trials)")
+    print(f"Problem dimensions: m={m}, n={n}, s={s}")
+    print("=" * 110)
+    print(f"{'Method':<34} "
+        f"{'Iterations':>18} {'Relative error':>18} {'Time (s)':>12}")
+    print("-" * 110)
+    for name, _ in methods:
+        method_results = results[name]
+        print(
+            f"{name:<34} "
+            f"{np.mean(method_results['count']):>18.2f} "
+            f"{np.mean(method_results['error']):>18.2e} "
+            f"{np.mean(method_results['time']):>8.4f}"
+        )
+    print("=" * 110 + "\n")
 
     ## Method 2 - DCT matrix 
     # iadmm_algorithm(A, sigma_1, beta, delta, xi_1, xi_2, s, m, n)
