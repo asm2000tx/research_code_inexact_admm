@@ -12,7 +12,7 @@ def check_fista_threshold(t1_dict):
     print("Checking Condition (35) (Classic and Inexact)")
     status = "Pass" if stop_measure < t1_dict["xi_1"] else "Fail"
     print(f"Status: {status} - max(stop_term1, stop_term2) = {stop_measure:.5e}\n")
-
+    
     return stop_measure < t1_dict["xi_1"]
 
 def check_approx_condition(c1_dict, inexact=False):
