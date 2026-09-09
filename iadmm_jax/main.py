@@ -12,7 +12,7 @@ from conditions import check_fista_threshold
 ## criterion algorithm. The main loop is performing the minimization problem. 
 ## Author(s): Jiaxin Xie, Anping Liao, Xiaobo Yang
 
-def admm_alg(A, b, beta, xi_1, xi_2, m, n, *, inexact=False, sigma_1=None, max_iter=None):
+def admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, *, inexact=False, sigma_1=None, max_iter=None):
     if inexact and sigma_1 is None: raise ValueError("sigma_1 is required for an inexact ADMM update")
 
     ## mu - constant
@@ -27,13 +27,15 @@ def admm_alg(A, b, beta, xi_1, xi_2, m, n, *, inexact=False, sigma_1=None, max_i
     count = 1
     fista_args = {
         "A": A,
+        "AtA": AtA,
         "y": y_p,
         "l": l_d,
         "b": b,
         "w_1": w_1,
         "beta": beta,
         "sigma_1": sigma_1 if inexact else None,
-        "xi_2": xi_2
+        "xi_2": xi_2,
+        "L": L
     }
 
     ## ADMM iterations
@@ -84,11 +86,11 @@ def admm_alg(A, b, beta, xi_1, xi_2, m, n, *, inexact=False, sigma_1=None, max_i
 
     return x_p, count
 
-def inexact_admm_alg(A, b, sigma_1, beta, xi_1, xi_2, s, m, n):
-    return admm_alg(A, b, beta, xi_1, xi_2, m, n, inexact=True, sigma_1=sigma_1)
+def inexact_admm_alg(A, AtA, b, sigma_1, beta, xi_1, xi_2, L, m, n):
+    return admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=True, sigma_1=sigma_1)
 
-def classic_admm_alg(A, b, beta, delta, xi_1, xi_2, s, m, n):
-    return admm_alg(A, b, beta, xi_1, xi_2, m, n, inexact=False)
+def classic_admm_alg(A, AtA, b, beta, delta, xi_1, xi_2, L, m, n):
+    return admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=False)
 
 def main():
     ## Dimensions and sparsity constant
@@ -118,18 +120,22 @@ def main():
     ## b - inexact output 
     b = A @ x_bar + delta * eps
 
+    ## Precomputing quantities used by the ADMM algorithms
+    AtA = A.T @ A
+    L = beta * np.linalg.norm(A, 2) ** 2
+
     print(f"Problem: m, n, s = {m}, {n}, {s}\n")
 
     # Keep all methods in one table so every configuration is tested identically.
     methods = [
         ("Inexact ADMM (sigma_1=0.1)",
-         lambda: inexact_admm_alg(A, b, 0.1, beta, xi_1, xi_2, s, m, n)),
+         lambda: inexact_admm_alg(A, AtA, b, 0.1, beta, xi_1, xi_2, L, m, n)),
         ("Inexact ADMM (sigma_1=0.5)",
-         lambda: inexact_admm_alg(A, b, 0.5, beta, xi_1, xi_2, s, m, n)),
+         lambda: inexact_admm_alg(A, AtA, b, 0.5, beta, xi_1, xi_2, L, m, n)),
         ("Inexact ADMM (sigma_1=0.99)",
-         lambda: inexact_admm_alg(A, b, 0.99, beta, xi_1, xi_2, s, m, n)),
+         lambda: inexact_admm_alg(A, AtA, b, 0.99, beta, xi_1, xi_2, L, m, n)),
         ("Classic ADMM",
-         lambda: classic_admm_alg(A, b, beta, delta, xi_1, xi_2, s, m, n)),
+         lambda: classic_admm_alg(A, AtA, b, beta, delta, xi_1, xi_2, L, m, n)),
     ]
     results = {name: {"count": [], "error": [], "time": []} for name, _ in methods}
 
