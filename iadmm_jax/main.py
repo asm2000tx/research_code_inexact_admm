@@ -6,7 +6,7 @@ from algorithms import inexact_admm_alg, classic_admm_alg
 
 def main():
     ## Dimensions and sparsity constant
-    s, m, n = 10, 256, 1024
+    s, m, n = 40, 256, 2048
 
     ## Define the inexact solution
     beta = 1.5e3
@@ -16,42 +16,46 @@ def main():
     xi_1 = 1e-4
     xi_2 = 1e-8
 
-    ## Method 1 - Gaussian matrix
-    A = np.random.randn(m, n)
-    A /= np.linalg.norm(A, axis=0, keepdims=True)
-    
-    ## x_bar - sparse vector
-    x_bar = np.zeros(n)
-    s_bar = np.random.randint(1,s)
-    x_bar[:s_bar] = np.random.randn(s_bar)
-    np.random.shuffle(x_bar)
-
-    ## eps - 'noise' vector
-    eps = np.random.randn(m)
-
-    ## b - inexact output 
-    b = A @ x_bar + delta * eps
-
-    ## Precomputing quantities used by the ADMM algorithms
-    AtA = A.T @ A
-    L = beta * np.linalg.norm(A, 2) ** 2
-
     print(f"Problem: m, n, s = {m}, {n}, {s}\n")
 
-    # Keep all methods in one table so every configuration is tested identically.
-    methods = [
-        ("Inexact ADMM (sigma_1=0.1)",
-         lambda: inexact_admm_alg(A, AtA, b, 0.1, beta, xi_1, xi_2, L, m, n)),
-        ("Inexact ADMM (sigma_1=0.5)",
-         lambda: inexact_admm_alg(A, AtA, b, 0.5, beta, xi_1, xi_2, L, m, n)),
-        ("Inexact ADMM (sigma_1=0.99)",
-         lambda: inexact_admm_alg(A, AtA, b, 0.99, beta, xi_1, xi_2, L, m, n)),
-        ("Classic ADMM",
-         lambda: classic_admm_alg(A, AtA, b, beta, delta, xi_1, xi_2, L, m, n)),
+    method_names = [
+        "Inexact ADMM (sigma_1=0.1)",
+        "Inexact ADMM (sigma_1=0.5)",
+        "Inexact ADMM (sigma_1=0.99)",
+        "Classic ADMM",
     ]
-    results = {name: {"count": [], "error": [], "time": []} for name, _ in methods}
+    results = {name: {"count": [], "error": [], "time": []}
+               for name in method_names}
 
     for trial in range(1, 11):
+        ## Method 1 - Gaussian matrix
+        A = np.random.normal(loc=0.0, scale=1.0, size=(m,n))
+        A /= np.linalg.norm(A, axis=0, keepdims=True)
+        
+        ## x_bar - sparse vector
+        x_bar = np.zeros(n)
+        s_bar = np.random.randint(1,s+1)
+        x_values = np.random.normal(loc=0.0, scale=1.0, size=n)
+        x_bar[:s_bar] = x_values[:s_bar]
+        np.random.shuffle(x_bar)
+
+        ## eps - 'noise' vector
+        eps = np.random.normal(loc=0.0, scale=1.0, size=m)
+
+        ## b - inexact output 
+        b = A @ x_bar + delta * eps
+
+        ## Precomputing quantities used by the ADMM algorithms
+        AtA = A.T @ A
+        L = beta * np.linalg.norm(A, 2) ** 2
+
+        # Keep all methods in one table so every configuration is tested identically.
+        methods = [
+            (method_names[0], lambda: inexact_admm_alg(A, AtA, b, 0.1, beta, xi_1, xi_2, L, m, n)),
+            (method_names[1], lambda: inexact_admm_alg(A, AtA, b, 0.5, beta, xi_1, xi_2, L, m, n)),
+            (method_names[2], lambda: inexact_admm_alg(A, AtA, b, 0.99, beta, xi_1, xi_2, L, m, n)),
+            (method_names[3], lambda: classic_admm_alg(A, AtA, b, beta, delta, xi_1, xi_2, L, m, n)),
+        ]
         for name, solve in methods:
             print(f"Trial {trial}/10: Running {name}\n")
             start = time.perf_counter()
@@ -73,7 +77,7 @@ def main():
     print(f"{'Method':<34} "
         f"{'Iterations':>18} {'Relative error':>18} {'Time (s)':>12}")
     print("-" * 110)
-    for name, _ in methods:
+    for name in method_names:
         method_results = results[name]
         print(
             f"{name:<34} "

@@ -9,7 +9,7 @@ def check_fista_threshold(t1_dict):
     stop_term2 = np.linalg.norm(res_term2) / (1.0 + np.linalg.norm(t1_dict["y_p"]))
     stop_measure = max(stop_term1, stop_term2)
 
-    print("Checking Condition (35) (Classic and Inexact)")
+    print("Checking Stopping Condition (35) - Classic and Inexact ADMM")
     status = "Pass" if stop_measure < t1_dict["xi_1"] else "Fail"
     print(f"Status: {status} - max(stop_term1, stop_term2) = {stop_measure:.5e}\n")
     
@@ -22,8 +22,6 @@ def check_approx_condition(c1_dict, inexact=False):
     lhs_term1 = (2.0 / c1_dict["beta"]) * np.abs((c1_dict["w_1"] - c1_dict["x"]).T @ c1_dict["d"])
     lhs_term2 = np.linalg.norm(c1_dict["d"], ord=2) ** 2
     rhs_term = c1_dict["sigma_1"] * np.linalg.norm(residual, ord=2) ** 2
-
-    if c1_dict['count'] % 250 == 0 and inexact: print(f"Algorithm 1 - Condition (8) | count == {c1_dict['count']}")
     
     return (lhs_term1 + lhs_term2) <= rhs_term
 
@@ -40,7 +38,6 @@ def check_dist_condition(c2_dict, inexact=True):
     d[negative] = q[negative] - 1.0
     d[zero] = q[zero] - np.clip(q[zero], -1.0, 1.0)
 
-    if c2_dict["count"] % 250 == 0 and not inexact:
-        print(f"Iteration {c2_dict['count']} - Condition (36): norm(d) = {np.linalg.norm(d):.5e}")
+    result = np.linalg.norm(d) < c2_dict["xi_2"]
 
-    return np.linalg.norm(d) < c2_dict["xi_2"]
+    return result
