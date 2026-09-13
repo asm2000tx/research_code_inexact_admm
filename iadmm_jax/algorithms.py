@@ -6,9 +6,7 @@ from fista import fista_const
 # Helper functions
 from conditions import check_fista_threshold
 
-def admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=False, sigma_1=None):
-    ## mu - constant
-    mu = np.sqrt(m) * np.linalg.norm(A.T @ b, ord=np.inf)
+def admm_alg(A, AtA, b, beta, xi_1, xi_2, m, n, inexact=False, sigma_1=None):
 
     ## Define x_p and y_p (primal) | l_d (dual)
     x_p, y_p, l_d = np.zeros(n), np.zeros(m), np.zeros(m)
@@ -16,15 +14,17 @@ def admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=False, sigma_1=None):
     ## The inexact method carries the FISTA correction term w_1.
     w_1 = np.zeros(n) if inexact else None
 
+    ## Define the constants - L and mu
+    L = beta * np.linalg.norm(A, ord=2) ** 2
+    mu = np.sqrt(m) * np.linalg.norm(A.T @ b, ord=np.inf)
+    
     count = 1
     fista_args = {
-        "A": A,
-        "AtA": AtA,
+        "A": A, "AtA": AtA,
         "y": y_p,"l": l_d, "b": b, "w_1": w_1,
         "beta": beta, "sigma_1": sigma_1 if inexact else None, "xi_2": xi_2, "L": L,
         "i_k": 0
     }
-
     
     ## ADMM iterations
     while True:
@@ -71,8 +71,8 @@ def admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=False, sigma_1=None):
 
     return x_p, count
 
-def inexact_admm_alg(A, AtA, b, sigma_1, beta, xi_1, xi_2, L, m, n):
-    return admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=True, sigma_1=sigma_1)
+def inexact_admm_alg(A, AtA, b, sigma_1, beta, xi_1, xi_2, m, n):
+    return admm_alg(A, AtA, b, beta, xi_1, xi_2, m, n, inexact=True, sigma_1=sigma_1)
 
-def classic_admm_alg(A, AtA, b, beta, delta, xi_1, xi_2, L, m, n):
-    return admm_alg(A, AtA, b, beta, xi_1, xi_2, L, m, n, inexact=False)
+def classic_admm_alg(A, AtA, b, beta, delta, xi_1, xi_2, m, n):
+    return admm_alg(A, AtA, b, beta, xi_1, xi_2, m, n, inexact=False)
